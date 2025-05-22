@@ -1,4 +1,5 @@
 🌍 Clip Multiple TIFF Rasters with a Shapefile in R 🌿
+
 Welcome to the Raster Clipper! 🎉 This R script makes it easy to clip multiple .TIF raster files using a shapefile, ensuring maximum inclusivity by using coverage fractions. Perfect for geospatial enthusiasts working with satellite imagery, land use data, or any raster-based analysis! 🗺️
 
 🚀 What Does This Script Do?
