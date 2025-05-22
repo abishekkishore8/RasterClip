@@ -1,2 +1,192 @@
-# RasterClip
-Clip Multiple TIFF Rasters with a Shapefile in R
+🌍 Clip Multiple TIFF Rasters with a Shapefile in R 🌿
+Welcome to the Raster Clipper! 🎉 This R script makes it easy to clip multiple .TIF raster files using a shapefile, ensuring maximum inclusivity by using coverage fractions. Perfect for geospatial enthusiasts working with satellite imagery, land use data, or any raster-based analysis! 🗺️
+
+🚀 What Does This Script Do?
+This script automates the process of clipping multiple TIFF raster files with a shapefile in R, ensuring that even partially covered pixels are included. Here's a quick overview of what it does:
+
+📂 Prompts you to select a folder with .TIF raster files.
+🗺️ Asks for a shapefile (.shp) to use as the clipping boundary.
+💾 Lets you choose an output folder to save the clipped rasters.
+🔄 Processes each .TIF file by:
+📖 Reading the raster and shapefile.
+🌐 Ensuring both are in the same Coordinate Reference System (CRS).
+✂️ Cropping the raster to the shapefile's extent.
+🖌️ Rasterizing the shapefile to calculate coverage fractions.
+🎭 Creating a binary mask to keep pixels with any coverage.
+💾 Saving the clipped raster to the output folder.
+
+
+📊 Provides a summary of processed and failed files.
+
+The script uses the terra, sf, and tcltk packages to handle geospatial data and interactive file selection. 🛠️
+
+📋 Prerequisites
+Before running the script, ensure you have:
+
+🖥️ R installed (version 4.0 or higher recommended).
+📦 Required R packages:
+terra: For raster and vector operations.
+sf: For handling shapefiles.
+tcltk: For interactive folder/file selection dialogs.
+
+
+📁 Input files:
+A folder containing .TIF raster files (e.g., satellite imagery).
+A .shp shapefile with a defined CRS for clipping.
+
+
+💾 Write permissions for the output folder.
+
+The script will automatically install missing packages! 🚀
+
+🛠️ How to Use the Script地道
+Follow these steps to run the script:
+
+📥 Download the script:
+
+Copy the raster_clipper.R script (provided below) into your R working directory or a known location.
+
+
+📂 Prepare your files:
+
+Place your .TIF raster files in a folder.
+Ensure your shapefile (.shp) is ready and has a valid CRS.
+
+
+🏃 Run the script in R:
+
+Open R or RStudio.
+Source the script using:source("raster_clipper.R")
+
+
+Alternatively, copy and paste the script into the R console.
+
+
+🖱️ Follow the prompts:
+
+Select the folder containing your .TIF files.
+Choose the .shp shapefile for clipping.
+Pick an output folder for the clipped rasters.
+
+
+✅ Check the output:
+
+The script will process each .TIF file and save the clipped rasters to the output folder.
+A summary will display the number of successfully processed files and any errors.
+
+
+
+
+💻 The Script
+Below is the complete R script (raster_clipper.R) that you can save and upload to your GitHub repository:
+
+# --------------------------------------------------------------------------
+# Script to Clip Multiple TIF Raster Files with a Shapefile in R
+# (Max Inclusivity using Coverage Fraction)
+# --------------------------------------------------------------------------
+# This script will:
+# 1. Ask the user to select a folder containing .TIF raster files.
+# 2. Ask the user to select a .shp shapefile to use for clipping.
+# 3. Ask the user to select an output folder to save the clipped rasters.
+# 4. For each .TIF file:
+#    a. Read the raster.
+#    b. Read the shapefile (done once initially and validated).
+#    c. Ensure both datasets are in the same Coordinate Reference System (CRS).
+#       If not, it reprojects the shapefile to match the raster's CRS.
+#    d. Crop the raster to the extent of the shapefile.
+#    e. Rasterize the shapefile onto the cropped raster's grid using the
+#       `cover = TRUE` option. This creates a raster where pixel values
+#       represent the fraction of that pixel covered by the shapefile.
+#    f. Create a binary mask: pixels with any coverage (>0) are marked for keeping.
+#    g. Mask (clip) the raster using this binary mask.
+#    h. Save the clipped raster to the output folder.
+# --------------------------------------------------------------------------
+
+1. INSTALL AND LOAD NECESSARY PACKAGES
+--------------------------------------------------------------------------
+Check if packages are installed, install if not, then load them.
+if (!requireNamespace("terra", quietly = TRUE)) {  install.packages("terra")}library(terra)
+if (!requireNamespace("sf", quietly = TRUE)) {  install.packages("sf")}library(sf)
+if (!requireNamespace("tcltk", quietly = TRUE)) {  install.packages("tcltk")}library(tcltk) # For interactive folder/file selection dialogs
+--------------------------------------------------------------------------
+2. DEFINE FILE PATHS (INTERACTIVE SELECTION)
+--------------------------------------------------------------------------
+--- Interactively select folders/files ---
+print("Welcome! This script will clip multiple TIF files using a shapefile.")print("Please follow the prompts to select your input and output locations.")
+Select the folder containing .TIF files
+print("Step 1: Please select the folder containing your .TIF raster files.")raster_folder <- tk_choose.dir(caption = "Select Folder with TIF Raster Files")if (is.na(raster_folder) || raster_folder == "") {  stop("No raster folder selected. Script terminated.")}print(paste("Raster folder selected:", raster_folder))
+Select the .shp file
+print("Step 2: Please select your .shp shapefile for clipping.")shapefile_path <- tk_choose.files(caption = "Select Shapefile (.shp)",                                  multi = FALSE, # Only allow one file selection                                  filters = matrix(c("Shapefiles", ".shp", "All files", ".*"),                                                   2, 2, byrow = TRUE))if (length(shapefile_path) == 0 || shapefile_path == "") {  stop("No shapefile selected. Script terminated.")}print(paste("Shapefile selected:", shapefile_path))
+Select the output folder
+print("Step 3: Please select the folder where clipped rasters will be saved.")output_folder <- tk_choose.dir(caption = "Select Output Folder for Clipped Rasters")if (is.na(output_folder) || output_folder == "") {  stop("No output folder selected. Script terminated.")}print(paste("Output folder selected:", output_folder))
+Create the output directory if it doesn't exist
+if (!dir.exists(output_folder)) {  dir.create(output_folder, recursive = TRUE)  print(paste("Created output folder:", output_folder))}
+--------------------------------------------------------------------------
+3. LIST ALL .TIF FILES IN THE SPECIFIED FOLDER
+--------------------------------------------------------------------------
+tif_files <- list.files(path = raster_folder,                        pattern = "\.tif$",                        full.names = TRUE,                        ignore.case = TRUE)
+if (length(tif_files) == 0) {  stop(paste("No .TIF files found in the selected folder:", raster_folder, ". Please check the folder and file extensions."))} else {  print(paste("Found", length(tif_files), "TIF files to process."))  print("Files to be processed:")  print(basename(tif_files))}
+--------------------------------------------------------------------------
+4. READ THE SHAPEFILE (ONCE) AND VALIDATE GEOMETRY
+--------------------------------------------------------------------------
+print(paste("Reading shapefile from:", shapefile_path))tryCatch({  clip_shape_sf <- sf::st_read(shapefile_path, quiet = TRUE)
+Check for and fix invalid geometries if any (can sometimes cause issues)
+  if(any(!sf::st_is_valid(clip_shape_sf))){    print("  Warning: Invalid geometries found in shapefile. Attempting to fix with st_make_valid().")    clip_shape_sf <- sf::st_make_valid(clip_shape_sf)    # Re-check after attempting to fix    if(any(!sf::st_is_valid(clip_shape_sf))){        print("  Error: Unable to fix all invalid geometries in the shapefile. This might lead to issues.")    } else {        print("  Invalid geometries successfully fixed.")    }  }  clip_shape_terra_orig <- terra::vect(clip_shape_sf) # Original shapefile as SpatVector  print("Shapefile read and converted to SpatVector successfully.")  print(paste("Original Shapefile CRS:", terra::crs(clip_shape_terra_orig, proj=TRUE)))}, error = function(e) {  stop(paste("Error reading or converting shapefile:", e$message))})
+--------------------------------------------------------------------------
+5. PROCESS EACH RASTER FILE (LOOP)
+--------------------------------------------------------------------------
+print("Starting raster processing loop...")processed_files_count <- 0error_files_count <- 0
+for (i in 1:length(tif_files)) {  raster_path <- tif_files[i]  raster_name <- basename(raster_path)  output_raster_name <- paste0("clipped_", raster_name)  output_path <- file.path(output_folder, output_raster_name)
+  print(paste0("----------------------------------------------------"))  print(paste0("Processing file ", i, " of ", length(tif_files), ": ", raster_name))
+  tryCatch({    # 5a. Read the current raster file    current_raster <- terra::rast(raster_path)    print(paste("  Raster loaded. Original CRS:", terra::crs(current_raster, proj=TRUE)))    print(paste("  Raster resolution (x, y):", paste(terra::res(current_raster), collapse=", ")))
+# 5b. Check and Transform Coordinate Reference Systems (CRS) for the shapefile
+crs_raster <- terra::crs(current_raster)
+if (!identical(terra::crs(clip_shape_terra_orig), crs_raster)) {
+  print("  CRS mismatch detected. Reprojecting shapefile to match current raster CRS...")
+  clip_shape_terra_proj <- terra::project(clip_shape_terra_orig, crs_raster)
+  print(paste("  Shapefile reprojected to:", terra::crs(clip_shape_terra_proj, proj=TRUE)))
+} else {
+  clip_shape_terra_proj <- clip_shape_terra_orig
+  print("  CRS match. No reprojection of shapefile needed for this raster.")
+}
+
+# 5c. Crop the raster to the extent of the (potentially reprojected) shapefile
+print("  Cropping raster to shapefile extent (snap='out')...")
+# snap="out" ensures the cropped extent fully covers the shapefile
+raster_cropped <- terra::crop(current_raster, clip_shape_terra_proj, snap="out")
+print("  Raster cropped.")
+
+# 5d. Rasterize the shapefile to get coverage fractions
+# `cover = TRUE` creates a raster where cell values are the fraction of the cell covered by polygons (0-1).
+# Cells not covered at all will have a value of 0.
+print("  Rasterizing shapefile to get pixel coverage fractions (cover=TRUE)...")
+coverage_fraction_raster <- terra::rasterize(x = clip_shape_terra_proj, 
+                                             y = raster_cropped, 
+                                             cover = TRUE) # field, touches, fun are ignored with cover=TRUE
+print("  Coverage fraction raster created.")
+
+# 5e. Create a binary mask from the coverage fraction raster
+# Any pixel with coverage > 0 (even a tiny fraction) will be included.
+# We use a very small threshold (e.g., 1e-9) instead of exactly 0 for robust floating point comparison.
+print("  Creating binary mask from coverage fractions (any coverage > 0)...")
+# Pixels with coverage > 1e-9 get value 1, others get NA.
+binary_mask <- terra::ifel(coverage_fraction_raster > 1e-9, 1, NA) 
+print("  Binary mask created.")
+
+# 5f. Mask the cropped raster using the binary mask
+print("  Masking raster with the binary coverage mask...")
+raster_final_clip <- terra::mask(raster_cropped, binary_mask)
+print("  Raster masked.")
+
+# 5g. Save the clipped (masked) raster
+print(paste("  Saving final clipped raster to:", output_path))
+terra::writeRaster(raster_final_clip, output_path, overwrite = TRUE, datatype = terra::datatype(current_raster))
+print("  Clipped raster saved successfully.")
+processed_files_count <- processed_files_count + 1
+
+  }, error = function(e) {    print(paste("  ERROR processing file", raster_name, ":", e$message))    error_files_count <- error_files_count + 1  })}
+--------------------------------------------------------------------------
+6. FINAL SUMMARY
+--------------------------------------------------------------------------
+print(paste0("===================================================="))print("All raster processing finished.")print(paste("Successfully processed files:", processed_files_count))print(paste("Files with errors:", error_files_count))print(paste("Clipped files are saved in:", output_folder))print("====================================================")
+End of Script
